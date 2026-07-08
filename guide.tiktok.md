@@ -4,7 +4,7 @@
 
 Tendrás disponible una api con todo lo que necesitas para este taller en el siguiente enlace:
 
-https://tiktok-api.mariofdezzz.com
+https://tiktok-api.mariofdezzz.com/graphql
 
 Accediendo al enlace, encontraras un playground que te permite visualizar e interactuar con la API. Añade esta url a tu configuracion de ApolloClient.
 
