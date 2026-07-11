@@ -147,3 +147,59 @@ Esta es toda la configuración que necesitas! Cuando llegue el dia del taller, e
 
 - [GraphQL Documentation](https://graphql.org/)
 - [Apollo Upload Client](https://github.com/jaydenseric/apollo-upload-client)
+
+---
+
+# 🎬 TikTok clone frontend (implementation notes)
+
+**Stack:** React + Vite + TypeScript, Tailwind CSS v4, Apollo Client v3
+(cache disabled), `apollo-upload-client` for uploads, `graphql-sse` for
+subscriptions. Points at our own backend (`gofigeeks-gql-backend`).
+
+## Local development
+
+```bash
+# Backend must be running first (see ../gofigeeks-gql-backend):
+#   docker compose up -d && npm run db:migrate && npm run db:seed && npm run dev
+
+npm install
+# .env already sets VITE_API_URL=http://localhost:4000/graphql
+npm run dev          # http://localhost:5173
+```
+
+Log in with `admin@example.com` / `admin` (or `user@example.com` / `user`).
+
+The backend's `TRUSTED_ORIGINS` must include the frontend origin
+(`http://localhost:5173` locally) so credentialed CORS + the session cookie
+work.
+
+## What's implemented (all 9 guide steps)
+
+1. Login/session via `signIn`/`signOut`/`session`; cookie-based, survives reload;
+   protected routes redirect to `/login`.
+2–3. Sidebar layout + full-viewport vertical **snap feed**; autoplay-on-visible;
+   creator/description/like overlay.
+4. Cursor **infinite scroll** (5/page) via IntersectionObserver + skeletons.
+5–6. **Upload** modal (video + optional thumbnail) → `upload` then `publishVideo`.
+7. **Profile** view (`user(id)` + `videos(filters:{userId})`) as a thumbnail grid.
+8. **New-videos banner** via the `videos` subscription (buffer → prepend on click).
+9. **Live likes**: polls only the on-screen video (`video(id)`) every 3s.
+
+Key files: `src/apollo/client.ts` (split upload/SSE link, no-cache),
+`src/graphql/operations.ts`, `src/auth/*`, `src/components/VideoFeed.tsx`,
+`VideoCard.tsx`, `UploadModal.tsx`, `NewVideosBanner.tsx`,
+`src/hooks/useLiveLikes.ts`, `src/pages/ProfilePage.tsx`.
+
+## Build & Docker (CapRover / Swarm)
+
+```bash
+npm run build                       # tsc + vite → dist/
+docker build --build-arg VITE_API_URL=https://api.example.com/graphql \
+  -t tiktok-frontend:latest .       # nginx serves the SPA
+```
+
+`VITE_API_URL` is inlined at **build time**, so set it to the deployed backend's
+HTTPS GraphQL URL via the Docker build arg (CapRover: App Configs → Build args).
+`captain-definition` points at the `Dockerfile`. After deploy, add the
+frontend's HTTPS origin to the backend `TRUSTED_ORIGINS` and enable HTTPS on both
+apps so the session cookie (`Secure`/`SameSite`) flows.
